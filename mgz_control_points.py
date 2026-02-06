@@ -394,7 +394,7 @@ class Honey_Wagon_Operator:
             (df_masked_1['Тех. состояние. Дата изменения'].isna()) | 
             (pd.to_datetime(df_masked_1['Тех. состояние. Дата изменения'], errors='coerce') <= week_ago)
         ) |
-        ((df_masked_1['Состояние площадки'].isna()) & (~df_masked_1['Состояние объекта'].isin(('В строительстве', 'Строительство завершено', 'Строительство приостановлено')))) |
+        ((df_masked_1['Состояние площадки'].isna()) & (df_masked_1['Состояние объекта'].isin(('В строительстве', 'Строительство завершено', 'Строительство приостановлено')))) |
         (df_masked_1['Руководитель проекта'].isna()) |
         (
             (df_masked_1['Техническое состояние'] == '') | 
@@ -453,6 +453,7 @@ if __name__ == '__main__':
         date_end = date.today()
     sudir_login = input("Введите логин СУДИР:\n")
     sudir_password = getpass.getpass("Введите пароль СУДИР:\n")
+    # print(f'пароль {sudir_password}')
     client = MgzClient(sudir_login, sudir_password)
     client.authorize()
     client.download_schedule_excel(date_start, filter_type='start', deputy_filter='гиляров', filename='начало_гиляров.xlsx')
@@ -467,3 +468,4 @@ if __name__ == '__main__':
     new_file = Honey_Wagon_Operator()
     new_file.full_pipe()
     input('Готово, файлы в папке result')
+    
