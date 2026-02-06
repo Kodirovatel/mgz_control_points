@@ -8,9 +8,7 @@ import getpass
 import os
 from pathlib import Path
 import pandas as pd
-from openpyxl import load_workbook
 
-# проектировщик и подрядчик убрать
 class MgzClient:
     """Клиент для работы с mgz.mos.ru"""
 
@@ -18,7 +16,7 @@ class MgzClient:
     FILTER_CONFIGS = {
         "end": {
             "entity_attribute": "PlanEndDate",
-            "operation": 1,
+            "operation": 2,
             "sub_node_attribute": "FactEndDate",
             "sub_node_row_id": "ext-1398",
             "description": "по окончанию"
@@ -396,7 +394,7 @@ class Honey_Wagon_Operator:
             (df_masked_1['Тех. состояние. Дата изменения'].isna()) | 
             (pd.to_datetime(df_masked_1['Тех. состояние. Дата изменения'], errors='coerce') <= week_ago)
         ) |
-        (df_masked_1['Состояние площадки'].isna()) |
+        ((df_masked_1['Состояние площадки'].isna()) & (~df_masked_1['Состояние объекта'].isin(('В строительстве', 'Строительство завершено', 'Строительство приостановлено')))) |
         (df_masked_1['Руководитель проекта'].isna()) |
         (
             (df_masked_1['Техническое состояние'] == '') | 
@@ -420,7 +418,7 @@ class Honey_Wagon_Operator:
         except Exception as e:
             print(f'Ошибка {e}')
 
-def transform_and_save_dfs(dfs_list, client, output_file_name):
+def transform_and_save_dfs(dfs_list, client, output_file_name, columns_to_drop):
         dfs_new = []
         for i in dfs_list:
             dfs_new.append(i.drop(columns=['Главная работа', 'Статус', 'Согласовано исполнителем', 'Согласовавший оператор', 'Дата согласования', 'Префектура',
@@ -435,7 +433,7 @@ def transform_and_save_dfs(dfs_list, client, output_file_name):
         mask = transformed_file['Заместитель'].isin(['Гиляров В.В.', 'Ситдиков Н.Р.'])
         transformed_file = transformed_file[mask]
         os.makedirs(client.result_dir, exist_ok=True)
-        transformed_file.to_excel(f'{client.result_dir}/{output_file_name}', index=False)
+        transformed_file.drop(columns=columns_to_drop).to_excel(f'{client.result_dir}/{output_file_name}', index=False)
         return 0
     
 if __name__ == '__main__':
@@ -447,13 +445,12 @@ if __name__ == '__main__':
         print("Неверный формат! Используется сегодняшняя дата.")
         date_start = date.today()
 
-    date_end = input('Введите дату для даты окончания (ДД.ММ.ГГГГ) или Enter для вчера:').strip()
+    date_end = input('Введите дату для даты окончания (ДД.ММ.ГГГГ) или Enter для сегодня:').strip()
     try:
-        date_end = datetime.strptime(date_end, "%d.%m.%Y") if date_end else date.today() - timedelta(days=1)
+        date_end = datetime.strptime(date_end, "%d.%m.%Y") if date_end else date.today()
     except ValueError:
-        print("Неверный формат! Используется вчерашняя дата.")
-        date_end = date.today() - timedelta(days=1)
-
+        print("Неверный формат! Используется сегодняшняя дата.")
+        date_end = date.today()
     sudir_login = input("Введите логин СУДИР:\n")
     sudir_password = getpass.getpass("Введите пароль СУДИР:\n")
     client = MgzClient(sudir_login, sudir_password)
@@ -463,9 +460,9 @@ if __name__ == '__main__':
     client.download_schedule_excel(date_end, filter_type='end', filename='окончание.xlsx')
     print('Сохранено в папке download')
     dfs_raw = [pd.read_excel(f, header=2) for f in Path(client.download_dir).glob('начало*.xlsx')]
-    transform_and_save_dfs(dfs_list=dfs_raw, client=client, output_file_name='начало.xlsx')
+    transform_and_save_dfs(dfs_list=dfs_raw, client=client, output_file_name='начало.xlsx', columns_to_drop=['План. окончание', 'Факт. окончание'])
     dfs_raw = [pd.read_excel(f, header=2) for f in Path(client.download_dir).glob('окончание.xlsx')]
-    transform_and_save_dfs(dfs_list=dfs_raw, client=client, output_file_name='окончание.xlsx')
+    transform_and_save_dfs(dfs_list=dfs_raw, client=client, output_file_name='окончание.xlsx', columns_to_drop=['План. начало', 'Факт. начало'])
     print('Обработка состояния объектов')
     new_file = Honey_Wagon_Operator()
     new_file.full_pipe()
