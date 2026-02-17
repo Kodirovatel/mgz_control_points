@@ -1,8 +1,10 @@
-# Загрузчик из МГЗ с обработкой файлов #
+# Загрузка файлов из МГЗ с обработкой, обработка файлов. #
+
+## Загрузчик из МГЗ с обработкой файлов ##
 
 Программа забирает файлы из реестра задач по заданным фильтрам и форматирует их, также обрабатывает файл `Состояние объектов.xlsx`.
 
-## Описание программы ##
+### Описание программы ###
 
 Перед запуском **необходимо положить файл Состояние объектов.xlsx в папку 2nd_file и очистить папки download и result**.
 При запуске можно указать даты для того чтобы пофлиять на фильтры при выгрузке из реестра задач, или оставить всё по умолчанию. Увидите сообщения:  
@@ -12,6 +14,13 @@
 Файлы будут загружены в папку **Download** и их можно потом использовать для проверки, после преобразования в папке `result` появятся файлы `начало.xlsx` и `окончание.xlsx`.
 После будет преобразован файл `Состояние объектов.xlsx`, результат также появится в **Download**.
 
+## Обработка файлов по аналитике ##
+
+Прогоняет файлы по заданным шаблонам. Фильтрация, сортировка, добаввление/удаление/переименование колонок.
+
+### Описание программы ###
+
+В папку с программой поместить файлы с именами `190822 __ Аналитика передачи на баланс затрат ДГС и подведомственных организаций (ПНБ) (ДГС).xlsx` и `250213 __ Информация по утвержденным объектам ввода ДГС (2026 - 2028).xlsx`. В результате работы появятся файлы `План ПНБ.xlsx`, `Бросовые.xlsx`, `Иерархия.xlsx` 
 
 ## Клонирование репозитория ##
 
@@ -41,12 +50,14 @@ powershell  -c "irm https://astral.sh/uv/install.ps1 | iex"
 3. Установите зависимости:
 `uv sync`
 4. Запустите программу:
-`uv run python mgz_control_points`
+`uv run python mgz_control_points` или `uv run python analitics.py`
 
 
 ## Создание standalone приложения ##
 С установленным uv в терминале заходите в папку со скриптами и выполняете команду:   
-`uv run pyinstaller --onefile --console --exclude-module IPython --exclude-module jupyter --exclude-module notebook --exclude-module matplotlib mgz_control_points.py`  
+`uv run pyinstaller --onefile --console --exclude-module IPython --exclude-module jupyter --exclude-module notebook --exclude-module matplotlib mgz_control_points.py` для контрольных точек
+`uv run pyinstaller --onefile --console --exclude-module IPython --exclude-module jupyter --exclude-module notebook --exclude-module matplotlib analitics.py` для аналитики
 
 
-В созданной папке mgz_control_points.dist создайте папки download, 2nd_file и result, разместите файл `Состояние объектов.xlsx`,затем запускайте mgz_control_points.exe
+Контрольные точки: в созданной папке dist создайте папки download, 2nd_file и result, разместите файл `Состояние объектов.xlsx`,затем запускайте mgz_control_points.exe.
+Аналитика: в созданной папке dist запускайте analitics.exe
