@@ -1,5 +1,4 @@
 import requests
-from urllib.parse import urlparse, parse_qs, unquote, unquote_plus
 from bs4 import BeautifulSoup
 from datetime import datetime, date, timedelta
 import json
@@ -189,7 +188,7 @@ class MgzClient:
         #  Заходим на главную страницу MGZ чтобы установить куки
         self.session.get("https://mgz.mos.ru/mosks/")
         
-        print(f"\nАвторизация успешна!")
+        print("\nАвторизация успешна!")
         return True
 
     def apply_schedule_filter(self, filter_date: datetime = None, filter_type: str = "end", deputy_filter: str = None):
@@ -313,7 +312,7 @@ class MgzClient:
         timestamp = int(time.time() * 1000)
         
         # Отправляем POST для скачивания
-        print(f"Скачиваем Excel...")
+        print("Скачиваем Excel...")
         response = self.post(
             f"/mosks/action/Print/GetPrintForm/?_dc={timestamp}",
             data=payload
@@ -374,7 +373,7 @@ class Honey_Wagon_Operator:
     def __init__(self):
         self.existing_file_path = Path.cwd() / '2nd_file'
         self.result_file_path = Path.cwd() / 'result'
-        self.file_name = 'Состояние объектов.xlsx'
+        self.file_name = '170315 __ Состояние объектов.xlsx'
 
     def get_file(self):
         cols = ['Код ДС', 'Наименование', 'Зам. руководителя департамента (атрибут)', 'Отрасль', 'Объект ввода', 'Год ввода\n(по плану)', 'Застройщик',
@@ -389,21 +388,24 @@ class Honey_Wagon_Operator:
             (df['Зам. руководителя департамента (атрибут)'].isin(('Ситдиков Н.Р.', 'Гиляров В.В.'))) &
             (df['Объект ввода'] == 'да') &
             (df['Год ввода\n(по плану)'] > 2025))
-        df_masked_1 = df[mask_and]
+        df_masked_1 = df[mask_and].copy()
         mask_or = ((
             (df_masked_1['Тех. состояние. Дата изменения'].isna()) | 
-            (pd.to_datetime(df_masked_1['Тех. состояние. Дата изменения'], errors='coerce') <= week_ago)
+            (pd.to_datetime(df_masked_1['Тех. состояние. Дата изменения'], errors='coerce') < week_ago)
         ) |
         ((df_masked_1['Состояние площадки'].isna()) & (df_masked_1['Состояние объекта'].isin(('В строительстве', 'Строительство завершено', 'Строительство приостановлено')))) |
         (df_masked_1['Руководитель проекта'].isna()) |
         (
+            (df_masked_1['Техническое состояние'].isna()) |
             (df_masked_1['Техническое состояние'] == '') | 
             (df_masked_1['Техническое состояние'].str.contains('%', na=False)) |
             (df_masked_1['Техническое состояние (всего символов)'] > 400)
         ))
         df_masked_2 = df_masked_1[mask_or]
+        df_masked_2['Наличие %'] = df_masked_2['Техническое состояние'].str.contains('%', na=False)
+        df_masked_2['Больше 400 символов'] = df_masked_2['Техническое состояние (всего символов)'] > 400
         return df_masked_2[['Код ДС', 'Наименование', 'Зам. руководителя департамента (атрибут)', 'Отрасль', 'Объект ввода', 'Год ввода\n(по плану)', 'Застройщик',
-        'Состояние объекта', 'Техническое состояние', 'Техническое состояние (всего символов)', 'Тех. состояние. Дата изменения', 'Состояние площадки', 'Руководитель проекта']]
+        'Состояние объекта', 'Техническое состояние', 'Техническое состояние (всего символов)', 'Наличие %', 'Больше 400 символов', 'Тех. состояние. Дата изменения', 'Состояние площадки', 'Руководитель проекта']]
     
     def save_file(self, df):
         file_path = os.path.join(self.result_file_path, self.file_name)
@@ -453,7 +455,6 @@ if __name__ == '__main__':
         date_end = date.today()
     sudir_login = input("Введите логин СУДИР:\n")
     sudir_password = getpass.getpass("Введите пароль СУДИР:\n")
-    # print(f'пароль {sudir_password}')
     client = MgzClient(sudir_login, sudir_password)
     client.authorize()
     client.download_schedule_excel(date_start, filter_type='start', deputy_filter='гиляров', filename='начало_гиляров.xlsx')
