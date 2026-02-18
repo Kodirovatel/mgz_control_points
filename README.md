@@ -6,7 +6,7 @@
 
 ### Описание программы ###
 
-Перед запуском **необходимо положить файл Состояние объектов.xlsx в папку 2nd_file и очистить папки download и result**.
+Перед запуском **необходимо положить файл Состояние объектов.xlsx в папку Загрузить_состояние_объектов и очистить папки download и result**.
 При запуске можно указать даты для того чтобы пофлиять на фильтры при выгрузке из реестра задач, или оставить всё по умолчанию. Увидите сообщения:  
 *Введите дату для даты начала (ДД.ММ.ГГГГ) или Enter для сегодня:*
 *Введите дату для даты окончания (ДД.ММ.ГГГГ) или Enter для вчера:*
@@ -16,7 +16,7 @@
 
 ## Обработка файлов по аналитике ##
 
-Прогоняет файлы по заданным шаблонам. Фильтрация, сортировка, добаввление/удаление/переименование колонок.
+Прогоняет файлы по заданным шаблонам. Фильтрация, сортировка, добавление/удаление/переименование колонок.
 
 ### Описание программы ###
 
@@ -54,10 +54,12 @@ powershell  -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 
 ## Создание standalone приложения ##
-С установленным uv в терминале заходите в папку со скриптами и выполняете команду:   
-`uv run pyinstaller --onefile --console --exclude-module IPython --exclude-module jupyter --exclude-module notebook --exclude-module matplotlib mgz_control_points.py` для контрольных точек
+С установленным uv в терминале заходите в папку со скриптами и выполняете команду:  
+
+`uv run pyinstaller --onefile --console --exclude-module IPython --exclude-module jupyter --exclude-module notebook --exclude-module matplotlib mgz_control_points.py` для контрольных точек  
+
 `uv run pyinstaller --onefile --console --exclude-module IPython --exclude-module jupyter --exclude-module notebook --exclude-module matplotlib analitics.py` для аналитики
 
 
-Контрольные точки: в созданной папке dist создайте папки download, 2nd_file и result, разместите файл `Состояние объектов.xlsx`,затем запускайте mgz_control_points.exe.
+Контрольные точки: в созданной папке dist создайте папки download, Загрузить_состояние_объектов и result, разместите файл `Состояние объектов.xlsx`,затем запускайте mgz_control_points.exe.
 Аналитика: в созданной папке dist запускайте analitics.exe
