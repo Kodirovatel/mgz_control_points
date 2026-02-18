@@ -371,7 +371,7 @@ class Honey_Wagon_Operator:
     '''
 
     def __init__(self):
-        self.existing_file_path = Path.cwd() / '2nd_file'
+        self.existing_file_path = Path.cwd() / 'Загрузить_состояние_объектов'
         self.result_file_path = Path.cwd() / 'result'
         self.file_name = '170315 __ Состояние объектов.xlsx'
 
@@ -453,10 +453,25 @@ if __name__ == '__main__':
     except ValueError:
         print("Неверный формат! Используется сегодняшняя дата.")
         date_end = date.today()
-    sudir_login = input("Введите логин СУДИР:\n")
-    sudir_password = getpass.getpass("Введите пароль СУДИР:\n")
-    client = MgzClient(sudir_login, sudir_password)
-    client.authorize()
+
+    max_attempts = 3
+
+    for attempt in range(1, max_attempts + 1):
+        sudir_login = input("Введите логин СУДИР:\n")
+        sudir_password = getpass.getpass("Введите пароль СУДИР:\n")
+        client = MgzClient(sudir_login, sudir_password)
+        
+        try:
+            client.authorize()
+            break
+        except Exception as e:
+            print(f'Ошибка авторизации: {e}')
+            if attempt < max_attempts:
+                print(f'Попытка {attempt}/{max_attempts}. Попробуйте снова.\n')
+            else:
+                print('Превышено количество попыток!')
+                raise
+      
     client.download_schedule_excel(date_start, filter_type='start', deputy_filter='гиляров', filename='начало_гиляров.xlsx')
     client.download_schedule_excel(date_start, filter_type='start', deputy_filter='ситдиков', filename='начало_ситдиков.xlsx')
     client.download_schedule_excel(date_end, filter_type='end', filename='окончание.xlsx')
