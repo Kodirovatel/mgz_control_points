@@ -376,7 +376,6 @@ class Honey_Wagon_Operator:
         self.file_name = '170315 __ Состояние объектов.xlsx'
         self.rename_map = {
             'Зам. руководителя департамента (атрибут)': 'Зам. Руководителя ДГС',
-            'Тех. состояние. Дата изменения': 'Состояние объета "В строительстве"\nТех.состояние  неактуально'
         }
 
     def get_file(self):
@@ -409,11 +408,55 @@ class Honey_Wagon_Operator:
         df_masked_2['Тех. состояние. Наличие %'] = df_masked_2['Техническое состояние'].str.contains('%', na=False)
         df_masked_2['Тех. состояние. Больше 400 символов'] = df_masked_2['Техническое состояние (всего символов)'] > 400
         df_masked_2 = df_masked_2.rename(columns=self.rename_map)
-        print(df_masked_2.info())
-        return df_masked_2[['Код ДС', 'Наименование', 'Зам. Руководителя ДГС', 'Отрасль', 'Объект ввода', 'Год ввода\n(по плану)', 'Застройщик',
+        df_masked_2 = df_masked_2[['Код ДС', 'Наименование', 'Зам. Руководителя ДГС', 'Отрасль', 'Объект ввода', 'Год ввода\n(по плану)', 'Застройщик',
         'Состояние объекта', 'Техническое состояние', 'Техническое состояние (всего символов)', 'Тех. состояние. Наличие %', 'Тех. состояние. Больше 400 символов',
-        'Состояние объета "В строительстве"\nТех.состояние  неактуально', 'Состояние площадки', 'Руководитель проекта']]
+        'Тех. состояние. Дата изменения', 'Состояние площадки', 'Руководитель проекта']]
+        df = self.tech_status_not_buildin(df_masked_2)
+        return df
     
+    def tech_status_not_buildin(self, df):
+
+        dt_col = pd.to_datetime(
+            df['Тех. состояние. Дата изменения'],
+            errors='coerce',
+            dayfirst=True
+        )
+
+        today = pd.Timestamp.today().normalize()
+        weekday = today.weekday()  # Monday=0 ... Friday=4
+
+        is_build = df['Состояние объекта'].eq('В строительстве')
+
+        if weekday == 0:          # понедельник: раньше прошлого четверга = True
+            # прошлый четверг: четверг прошлой недели
+            last_thu = today - pd.offsets.Week(weekday=3)
+            cond_date = dt_col < last_thu
+
+        elif weekday == 1:        # вторник: не сегодня = True
+            cond_date = dt_col != today
+
+        elif weekday == 2:        # среда: раньше вчерашнего вторника = True
+            tuesday = today - pd.Timedelta(days=1)
+            cond_date = dt_col < tuesday
+
+        elif weekday == 3:        # четверг: не сегодня = True 
+            cond_date = dt_col != today
+
+        elif weekday == 4:        # пятница: раньше четверга = True
+            thursday = today - pd.Timedelta(days=1)
+            cond_date = dt_col < thursday
+
+        else:
+            # если вдруг код запускается в выходные — логика не определена, просто везде False лупим
+            cond_date = pd.Series(False, index=df.index)
+
+        # итоговый булев столбец:
+        df['Состояние объекта "В строительстве"\nДата Тех.состояния неактуальна'] = (
+            is_build & cond_date
+        )
+        return df
+
+
     def save_file(self, df):
         file_path = os.path.join(self.result_file_path, self.file_name)
         df.to_excel(file_path, index=False)
@@ -447,47 +490,47 @@ def transform_and_save_dfs(dfs_list, client, output_file_name, columns_to_drop):
     
 if __name__ == '__main__':
 
-    # date_start = input('Введите дату для даты начала (ДД.ММ.ГГГГ) или Enter для сегодня: ').strip()
-    # try:
-    #     date_start = datetime.strptime(date_start, "%d.%m.%Y") if date_start else date.today()
-    # except ValueError:
-    #     print("Неверный формат! Используется сегодняшняя дата.")
-    #     date_start = date.today()
+    date_start = input('Введите дату для даты начала (ДД.ММ.ГГГГ) или Enter для сегодня: ').strip()
+    try:
+        date_start = datetime.strptime(date_start, "%d.%m.%Y") if date_start else date.today()
+    except ValueError:
+        print("Неверный формат! Используется сегодняшняя дата.")
+        date_start = date.today()
 
-    # date_end = input('Введите дату для даты окончания (ДД.ММ.ГГГГ) или Enter для сегодня:').strip()
-    # try:
-    #     date_end = datetime.strptime(date_end, "%d.%m.%Y") if date_end else date.today()
-    # except ValueError:
-    #     print("Неверный формат! Используется сегодняшняя дата.")
-    #     date_end = date.today()
+    date_end = input('Введите дату для даты окончания (ДД.ММ.ГГГГ) или Enter для сегодня:').strip()
+    try:
+        date_end = datetime.strptime(date_end, "%d.%m.%Y") if date_end else date.today()
+    except ValueError:
+        print("Неверный формат! Используется сегодняшняя дата.")
+        date_end = date.today()
 
-    # max_attempts = 3
+    max_attempts = 3
 
-    # for attempt in range(1, max_attempts + 1):
-    #     sudir_login = input("Введите логин СУДИР:\n")
-    #     sudir_password = getpass.getpass("Введите пароль СУДИР:\n")
-    #     client = MgzClient(sudir_login, sudir_password)
+    for attempt in range(1, max_attempts + 1):
+        sudir_login = input("Введите логин СУДИР:\n")
+        sudir_password = getpass.getpass("Введите пароль СУДИР:\n")
+        client = MgzClient(sudir_login, sudir_password)
         
-    #     try:
-    #         client.authorize()
-    #         break
-    #     except Exception as e:
-    #         print(f'Ошибка авторизации: {e}')
-    #         if attempt < max_attempts:
-    #             print(f'Попытка {attempt}/{max_attempts}. Попробуйте снова.\n')
-    #         else:
-    #             print('Превышено количество попыток!')
-    #             raise
+        try:
+            client.authorize()
+            break
+        except Exception as e:
+            print(f'Ошибка авторизации: {e}')
+            if attempt < max_attempts:
+                print(f'Попытка {attempt}/{max_attempts}. Попробуйте снова.\n')
+            else:
+                print('Превышено количество попыток!')
+                raise
       
-    # client.download_schedule_excel(date_start, filter_type='start', deputy_filter='гиляров', filename='начало_гиляров.xlsx')
-    # client.download_schedule_excel(date_start, filter_type='start', deputy_filter='ситдиков', filename='начало_ситдиков.xlsx')
-    # client.download_schedule_excel(date_end, filter_type='end', filename='окончание.xlsx')
-    # print('Сохранено в папке download')
-    # dfs_raw = [pd.read_excel(f, header=2) for f in Path(client.download_dir).glob('начало*.xlsx')]
-    # transform_and_save_dfs(dfs_list=dfs_raw, client=client, output_file_name='начало.xlsx', columns_to_drop=['План. окончание', 'Факт. окончание'])
-    # dfs_raw = [pd.read_excel(f, header=2) for f in Path(client.download_dir).glob('окончание.xlsx')]
-    # transform_and_save_dfs(dfs_list=dfs_raw, client=client, output_file_name='окончание.xlsx', columns_to_drop=['План. начало', 'Факт. начало'])
-    # print('Обработка состояния объектов')
+    client.download_schedule_excel(date_start, filter_type='start', deputy_filter='гиляров', filename='начало_гиляров.xlsx')
+    client.download_schedule_excel(date_start, filter_type='start', deputy_filter='ситдиков', filename='начало_ситдиков.xlsx')
+    client.download_schedule_excel(date_end, filter_type='end', filename='окончание.xlsx')
+    print('Сохранено в папке download')
+    dfs_raw = [pd.read_excel(f, header=2) for f in Path(client.download_dir).glob('начало*.xlsx')]
+    transform_and_save_dfs(dfs_list=dfs_raw, client=client, output_file_name='начало.xlsx', columns_to_drop=['План. окончание', 'Факт. окончание'])
+    dfs_raw = [pd.read_excel(f, header=2) for f in Path(client.download_dir).glob('окончание.xlsx')]
+    transform_and_save_dfs(dfs_list=dfs_raw, client=client, output_file_name='окончание.xlsx', columns_to_drop=['План. начало', 'Факт. начало'])
+    print('Обработка состояния объектов')
     new_file = Honey_Wagon_Operator()
     new_file.full_pipe()
     input('Готово, файлы в папке result')
