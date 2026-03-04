@@ -65,11 +65,11 @@ class MgzClient:
         {'Name': 'ApprovedDate', 'Header': 'Дата утверждения', 'Xtype': 'easgriddatecolumn', 'Hidden': False, 'WidthInReport': 5},
         {'Name': 'Developer', 'Header': 'Застройщик', 'Xtype': 'easwraptextcolumn', 'Hidden': False, 'FilterVisibleText': ''},
         {'Name': 'Deputy', 'Header': 'Заместитель', 'Xtype': 'easwraptextcolumn', 'Hidden': False, 'FilterVisibleText': ''},
-        {'Name': 'CompletePercentActualDate', 'Header': 'Актуально', 'Xtype': 'easgriddatecolumn', 'Hidden': False},
+        # {'Name': 'CompletePercentActualDate', 'Header': 'Актуально', 'Xtype': 'easgriddatecolumn', 'Hidden': False},
         {'Name': 'CuratorName', 'Header': 'Руководитель проекта', 'Xtype': 'easwraptextcolumn', 'Hidden': False, 'FilterVisibleText': ''},
         {'Name': 'OwnerName', 'Header': 'Ответственный', 'Xtype': 'gridcolumn', 'Hidden': False, 'WidthInReport': 5, 'ValueStringFormat': {'Text': '{0} ({1})', 'ColumnNames': ['OwnerName', 'OwnerDepartmentName']}, 'FilterVisibleText': ''},
         {'Name': 'OwnerSubdivisionName', 'Header': 'Отдел ответственного', 'Xtype': 'easwraptextcolumn', 'Hidden': False, 'WidthInReport': 5},
-        {'Name': 'LastComment', 'Header': 'Последняя проблематика', 'Xtype': 'easwraptextcolumn', 'Hidden': False}
+        # {'Name': 'LastComment', 'Header': 'Последняя проблематика', 'Xtype': 'easwraptextcolumn', 'Hidden': False}
     ]
 
     def __init__(self, login, password):
