@@ -504,8 +504,39 @@ class Honey_Wagon_Operator:
             df = self.get_file()
             df = self.transforming_file(df)
             self.save_file(df)
+            self.create_grouped_table()
         except Exception as e:
             print(f'Ошибка {e}')
+
+    def create_grouped_table(self):
+        df = pd.read_excel('result/{self.filename}')
+
+        cols_mapping = {'Всего Объектов': ('Код ДС', 'count'),
+                    'Наличие %': ('Тех. состояние. Наличие %', 'sum'),
+                    'Больше 400 символов': ('Тех. состояние. Больше 400 символов', 'sum'),
+                    'Не обновлено техническое состояние\nна объекте ввода с состоянием\n"В строительстве"': ('Состояние объекта "В строительстве"\nДата Тех.состояния неактуальна', 'sum'),
+                    'Не обновлено Техническое состояние\nна объекте ввода (состояния объектов НЕ\n"В строительстве")': ('Остальные состояния объектов\nТех.состояние неактуально', 'sum'),
+                    'Состояние площадки неактуально': ('Состояние площадки - неактуально', 'sum'),
+                    'Руководитель проекта - неактуально': ('Руководитель проекта - неактуально', 'sum')
+                    }
+
+        df_gilyarov = df[df['Зам. Руководителя ДГС'] == 'Гиляров В.В.']
+        df_gilyarov_res = df_gilyarov.groupby('Зам. Руководителя ДГС', as_index=False).agg(**cols_mapping).rename(columns={'Зам. Руководителя ДГС': 'Заместитель руководителя/ Застройщик'})
+        df_gilyarov_developer = df_gilyarov.groupby('Застройщик', as_index=False).agg(**cols_mapping).rename(columns={'Застройщик': 'Заместитель руководителя/ Застройщик'})
+
+        df_sitdikov = df[df['Зам. Руководителя ДГС'] == 'Ситдиков Н.Р.']
+        df_sitdikov_res = df_sitdikov.groupby('Зам. Руководителя ДГС', as_index=False).agg(**cols_mapping).rename(columns={'Зам. Руководителя ДГС': 'Заместитель руководителя/ Застройщик'})
+        df_sitdikov_developer = df_sitdikov.groupby('Застройщик', as_index=False).agg(**cols_mapping).rename(columns={'Застройщик': 'Заместитель руководителя/ Застройщик'})
+
+        total = pd.concat([df_gilyarov_res, df_sitdikov_res]).reset_index(drop=True)
+        total.index = total.index + 1
+        total.loc[0] = total.loc[1] + total.loc[2]
+        total.sort_index(inplace=True)
+        total.iat[0, 0] = 'Количество объектов:'
+        total.drop([1,2],inplace=True)
+
+        result = pd.concat([total, df_gilyarov_res, df_gilyarov_developer, df_sitdikov_res, df_sitdikov_developer]).reset_index(drop=True)
+        result.to_excel('Свод состояние объектов.xlsx')
 
 def transform_and_save_dfs(dfs_list, client, output_file_name, columns_to_drop):
         dfs_new = []
@@ -524,6 +555,8 @@ def transform_and_save_dfs(dfs_list, client, output_file_name, columns_to_drop):
         os.makedirs(client.result_dir, exist_ok=True)
         transformed_file.drop(columns=columns_to_drop).to_excel(f'{client.result_dir}/{output_file_name}', index=False)
         return 0
+
+
     
 if __name__ == '__main__':
 
